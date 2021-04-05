@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<link href="https://fonts.googleapis.com/css2?family=Roboto" rel="stylesheet" />
+		<script src='/libs/socketio.js'></script>
+		<script type='module'>
+			// Creating a socket variable to talk to our server with
+			const socket = io('/tunnel');
+
+			async function initializeSockets() {
+
+				// Telling our webserver to create a `chat` channel to talk with other browsers with
+				const res = await fetch('/tunnel/register', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						events: ['chat']
+					})
+				});
+
+				// Waiting for our server to respond
+				const resp = await res.json();
+
+				// Handle any errors from our server
+				if (resp.error) return alert(resp.error)
+
+				// Define what to do when someone sends us a message
+				socket.on('chatresponse', function (data) {
+
+				});
+
+				// Define what to do when someone joins the chat room
+				socket.on('userconnected', (socketId) => {
+					console.log('userconnected: ' + socketId);
+				});
+
+				// Define what to do when someone leaves the chat room
+				socket.on('userdisconnected', (socketId) => {
+					console.log('disconnected: ' + socketId);
+				})
+				// Checks `localStorage` if the person name is saved
+				let name = localStorage.getItem('name');
+
+				// If no name is found, ask the user for their name and save it
+				if (!name) {
+					name = prompt("What is your name?")
+					localStorage.setItem('name', name);
+				}
+			}
+
+			// Initializing the socket connection
+			initializeSockets();
+			// Putting all the elements into variables
+			const $button = document.querySelector('button');
+			const $textarea = document.querySelector('textarea');
+			const $main = document.querySelector('main');
+
+			function sendMessage() {
+				// Letting all the other browsers know what you typed
+				socket.emit('chat', { name, text: $textarea.value });
+
+				// Displaying the message into a new div and adding it to the main element
+				const div = document.createElement('div');
+				div.className = 'me';
+				div.innerHTML = `<b>${name}:</b> <span>${$textarea.value}</span>`;
+				$main.appendChild(div);
+				$textarea.value = '';
+
+				// Automatically scroll to the bottom of the message
+				$main.scrollTo(0, $main.scrollHeight);
+			}
+
+			// Sending the message when the button is clicked
+			$button.addEventListener('click', sendMessage);
+
+			// Moving the cursor to the textbox so the user can start typing
+			$textarea.focus();
+			socket.on('chatresponse', function(data) {
+	const div = document.createElement('div');
+	div.className = 'you';
+	div.innerHTML = `<b>${data.data.name}:</b> <span>${data.data.text}</span>`;
+	$main.appendChild(div);
+	$main.scrollTo(0,$main.scrollHeight);
+});
+		</script>
+		<title>
+			Private Chat
+		</title>
+		<style>
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
+
+			body {
+				display: grid;
+				grid-template-rows: 64px auto 100px;
+				grid-template-columns: auto 600px auto;
+				width: 100vw;
+				height: 100vh;
+				overflow: hidden;
+				font-family: system-ui, san-serif;
+				background-color: #004AAD;
+			}
+
+			header {
+				grid-column-start: 2;
+				grid-column-end: 3;
+				text-align: center;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background-color: #FF8D11;
+				color: #fcd411;
+			}
+
+			header>h1 {
+				font-size: 2em;
+			}
+
+			main {
+				grid-column-start: 2;
+				grid-column-end: 3;
+				list-style: none;
+				padding: 24px;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: flex-start;
+				background-color: white;
+				overflow-y: auto;
+				overflow-x: hidden;
+			}
+
+			main>div {
+				width: 100%;
+				font-size: 18px;
+				margin: 8px 0;
+			}
+
+			main>div.me {
+				font-family: 'Georgia', serif;
+				text-align: right;
+			}
+
+			main>div.you {
+				font-family: 'Inconsolata', monospace;
+				text-align: left;
+			}
+
+			footer {
+				grid-column-start: 2;
+				grid-column-end: 3;
+				display: grid;
+				grid-template-columns: auto 80px;
+				background-color: #fcd411;
+			}
+
+			footer>textarea {
+				font-family: 'Georgia', serif;
+				font-size: 18px;
+				padding: 8px 16px;
+				resize: none;
+			}
+
+			footer>button {
+				font-family: 'Georgia', serif;
+				font-size: 20px;
+				background-color: #fcd411;
+			}
+
+			@media only screen and (max-width: 768px) {
+				body {
+					height: calc(100vh - 114px);
+					grid-template-columns: auto 100% auto;
+				}
+			}
+		</style>
+	</head>
+
+	<body>
+		<header>
+
+			<h1>Chatting with a Counsellor</h1>
+		</header>
+		<main>
+			<div class='you'></div>
+			<div class='me'></div>
+		</main>
+		<footer>
+			<textarea placeholder='Type your message here...'></textarea>
+			<button>Send</button>
+		</footer>
+	</body>
+
+</html>
